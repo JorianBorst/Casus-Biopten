@@ -21,6 +21,12 @@ data(BreastCancer)
 # show the meta data of BreastCancer
 str(BreastCancer)
 
+# Change range of mitoses to 10
+BreastCancer <- na.omit(BreastCancer)
+
+dup_rows <- sum(duplicated(BreastCancer))
+BreastCancer <- BreastCancer[!dup_rows,]
+
 
 
 ###################################report###################################
@@ -94,15 +100,71 @@ cat("Second Mode Percentage: ", second_mode_perc, "%\n")
 
 ################################### EXPLORATION ###################################
 
-# Create a boxplot for the Cl.thickness variable
-boxplot(BreastCancer$Cl.thickness, main = "Cl.thickness", xlab = "Cl.thickness", ylab = "Value", col = "blue")
-
 # Create 2 dataframes with the data of the 2 classes
 benignCancer <- subset(BreastCancer, Class = "benign")
-# Createa a plot for the cell density and cromatin variable
-#ggplot(benignCancer, aes(x = Cell.density, y = Chromatin)) + geom_point()
-
 malignentCancer <- subset(BreastCancer, Class = "Maligant")
 
 #create a t-test to see if there is a difference between the two groups
-t.test(benignCancer$Cell.size, malignentCancer$Cell.size)
+#t.test(benignCancer$Cell.size, malignentCancer$Cell.size)
+
+# create a boxplot for cell size for the malignant and benign cancer
+boxplot(BreastCancer$Cell.size ~ BreastCancer$Class, main = "Cell.size", xlab = "Class", ylab = "Value", col = "blue")
+# create a boxplot for cromatin for the malignant and benign cancer
+boxplot(BreastCancer$Chromatin ~ BreastCancer$Class, main = "Chromatin", xlab = "Class", ylab = "Value", col = "blue")
+# create a boxplot for thickness for the malignant and benign cancer
+boxplot(BreastCancer$Cl.thickness ~ BreastCancer$Class, main = "Cl.thickness", xlab = "Class", ylab = "Value", col = "blue")
+
+# create a scatterplot matrix for all features for the malignant and benign cancer
+pairs(BreastCancer[c("Cell.size", "Cl.thickness", "Cell.shape", "Marg.adhesion",
+                     "Epith.c.size", "Bare.nuclei", "Bl.cromatin", "Normal.nucleoli",
+                     "Mitoses")], main = "Scatterplot matrix", col = "blue")
+######################################### Correlation and covalence #########################################
+BreastCancer$Cell.size <- as.numeric(BreastCancer$Cell.size)
+BreastCancer$Cl.thickness <- as.numeric(BreastCancer$Cl.thickness)
+BreastCancer$Cell.shape <- as.numeric(BreastCancer$Cell.shape)
+BreastCancer$Marg.adhesion <- as.numeric(BreastCancer$Marg.adhesion)
+BreastCancer$Epith.c.size <- as.numeric(BreastCancer$Epith.c.size)
+BreastCancer$Bare.nuclei <- as.numeric(BreastCancer$Bare.nuclei)
+BreastCancer$Bl.cromatin <- as.numeric(BreastCancer$Bl.cromatin)
+BreastCancer$Normal.nucleoli <- as.numeric(BreastCancer$Normal.nucleoli)
+BreastCancer$Mitoses <- as.numeric(BreastCancer$Mitoses)
+# Compute the correlation coefficient
+cor(BreastCancer$Cell.size, BreastCancer$Cl.thickness)
+
+cor(BreastCancer$Cell.size, BreastCancer$Cell.shape)
+
+# Laad de corrplot package (indien nodig)
+#install.packages("corrplot")
+library(corrplot)
+
+# Bereken de correlatiematrix
+corr_matrix <- cor(BreastCancer[c("Cell.size", "Cl.thickness", "Cell.shape", "Marg.adhesion",
+                                  "Epith.c.size", "Bare.nuclei", "Bl.cromatin", "Normal.nucleoli",
+                                  "Mitoses")])
+print(corr_matrix)
+
+######################################### Data preparation #########################################
+# Remove the missing values
+BreastCancer <- na.omit(BreastCancer)
+
+# Remove the outliers
+BreastCancer <- BreastCancer[BreastCancer$Cell.size < 10,]
+BreastCancer <- BreastCancer[BreastCancer$Cl.thickness < 10,]
+BreastCancer <- BreastCancer[BreastCancer$Cell.shape < 10,]
+BreastCancer <- BreastCancer[BreastCancer$Marg.adhesion < 10,]
+BreastCancer <- BreastCancer[BreastCancer$Epith.c.size < 10,]
+BreastCancer <- BreastCancer[BreastCancer$Bare.nuclei < 10,]
+BreastCancer <- BreastCancer[BreastCancer$Bl.cromatin < 10,]
+BreastCancer <- BreastCancer[BreastCancer$Normal.nucleoli < 10,]
+BreastCancer <- BreastCancer[BreastCancer$Mitoses < 10,]
+
+# Remove the ID column
+BreastCancer <- BreastCancer[, -1]
+
+# Remove the Class column
+BreastCancer <- BreastCancer[, -10]
+
+# Create a new column with the class
+BreastCancer$Class <- as.factor(BreastCancer$Class)
+
+
