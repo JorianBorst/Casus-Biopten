@@ -14,21 +14,20 @@ library(DataExplorer)
 library(ggplot2)
 library(httpgd)
 library(psych)
+library(caret)
+library(corrplot)
+library(caTools)
+library(BSDA)
+
 # load the breast cancer package
 data(BreastCancer)
 # load the ggplot2 package
 
+
+
+
 # show the meta data of BreastCancer
 str(BreastCancer)
-
-# Change range of mitoses to 10
-BreastCancer <- na.omit(BreastCancer)
-
-dup_rows <- sum(duplicated(BreastCancer))
-BreastCancer <- BreastCancer[!dup_rows,]
-
-
-
 ###################################report###################################
 # Create a data quality report for the BreastCancer dataset
 report <- create_report(BreastCancer)
@@ -133,9 +132,7 @@ cor(BreastCancer$Cell.size, BreastCancer$Cl.thickness)
 
 cor(BreastCancer$Cell.size, BreastCancer$Cell.shape)
 
-# Laad de corrplot package (indien nodig)
-#install.packages("corrplot")
-library(corrplot)
+
 
 # Bereken de correlatiematrix
 corr_matrix <- cor(BreastCancer[c("Cell.size", "Cl.thickness", "Cell.shape", "Marg.adhesion",
@@ -144,27 +141,69 @@ corr_matrix <- cor(BreastCancer[c("Cell.size", "Cl.thickness", "Cell.shape", "Ma
 print(corr_matrix)
 
 ######################################### Data preparation #########################################
-# Remove the missing values
+data(BreastCancer)
+str(BreastCancer)
+
+
+# remove the missing values
 BreastCancer <- na.omit(BreastCancer)
 
-# Remove the outliers
-BreastCancer <- BreastCancer[BreastCancer$Cell.size < 10,]
-BreastCancer <- BreastCancer[BreastCancer$Cl.thickness < 10,]
-BreastCancer <- BreastCancer[BreastCancer$Cell.shape < 10,]
-BreastCancer <- BreastCancer[BreastCancer$Marg.adhesion < 10,]
-BreastCancer <- BreastCancer[BreastCancer$Epith.c.size < 10,]
-BreastCancer <- BreastCancer[BreastCancer$Bare.nuclei < 10,]
-BreastCancer <- BreastCancer[BreastCancer$Bl.cromatin < 10,]
-BreastCancer <- BreastCancer[BreastCancer$Normal.nucleoli < 10,]
-BreastCancer <- BreastCancer[BreastCancer$Mitoses < 10,]
+# Remove the duplicates
+#dup_rows <- sum(duplicated(BreastCancer))
+#BreastCancer <- BreastCancer[!dup_rows,]
 
-# Remove the ID column
+# remove the ID column
 BreastCancer <- BreastCancer[, -1]
 
-# Remove the Class column
-BreastCancer <- BreastCancer[, -10]
-
-# Create a new column with the class
+# Change the class to a factor
 BreastCancer$Class <- as.factor(BreastCancer$Class)
+
+
+# Remove the outliers
+# BreastCancer <- BreastCancer[BreastCancer$Cell.size < 10,]
+# BreastCancer <- BreastCancer[BreastCancer$Cl.thickness < 10,]
+# BreastCancer <- BreastCancer[BreastCancer$Cell.shape < 10,]
+# BreastCancer <- BreastCancer[BreastCancer$Marg.adhesion < 10,]
+# BreastCancer <- BreastCancer[BreastCancer$Epith.c.size < 10,]
+# BreastCancer <- BreastCancer[BreastCancer$Bare.nuclei < 10,]
+# BreastCancer <- BreastCancer[BreastCancer$Bl.cromatin < 10,]
+# BreastCancer <- BreastCancer[BreastCancer$Normal.nucleoli < 10,]
+# BreastCancer <- BreastCancer[BreastCancer$Mitoses < 10,]
+
+
+######################################################Create train test and validation set######################################################
+logisitcal_model_1 <- glm(Class ~., data = BreastCancer, family = binomial)
+set.seed(123)
+
+split <- sample.split(BreastCancer$Class, SplitRatio = 0.5)
+train <- subset(BreastCancer, split == TRUE)
+test <- subset(BreastCancer, split == FALSE)
+
+########################################################Logistic Regression
+
+# Create a logistic regression model
+logistical_model_2 <- glm(Class ~., data = train, family = binomial)
+logistical_model_1 <- glm(Class ~  Cell.size + Epith.c.size + Bare.nuclei + Normal.nucleoli 
+, data = train, family = binomial)
+
+
+# Print the summary of the model
+summary(logistical_model_1)
+
+# Create a confusion matrix
+predicted_classes <- ifelse(predict(logistical_model_1, newdata = test, type = "response") > 0.5, "Malignant", "Benign")
+actual_classes <- test$Class
+table(predicted_classes, actual_classes)
+
+
+# Define the training control
+train_control <- trainControl(method = "cv", number =10)
+
+# Fit the logistic regression model with cross-validation
+model <- train(Class ~., data = BreastCancer, method = "glm",
+               trControl = train_control, family = "binomial")
+
+# Print the model results
+print(model)
 
 
